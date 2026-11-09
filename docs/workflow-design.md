@@ -1,14 +1,14 @@
 # Workflow design requirements
 
-This document describes the intended target behavior. It is not a description
-of the current implementation. Check the code before changing it, and keep this
-specification synchronized with implementation decisions.
+This document records the intended behavior and relevant implementation
+decisions. Use the code as the source of truth for what is currently
+implemented, and keep this specification synchronized with changes.
 
 ## Goal and architecture
 
-Build a DAG-based release workflow engine. Tasks log, sleep 1-10 seconds, and
-return metadata; the engineering focus is orchestration, IAM, and
-infrastructure.
+Build a DAG-based release workflow engine. Tasks log, sleep for a random
+1-10 seconds, and return metadata; the engineering focus is orchestration, IAM,
+and infrastructure.
 
 ```text
 S3/CloudFront dashboard -> API Gateway -> API Lambda -> DynamoDB
@@ -121,8 +121,8 @@ their tests.
 Business rules live only in task Lambdas, never in the generic Orchestrator,
 Worker, or table logic.
 
-Release input: `service` (string), `version` (`latest` | `beta`),
-`environment` (`SIT` | `PROD`), `approved` (boolean).
+Release input: `version` (`latest` | `beta`), `environment` (`SIT` | `PROD`),
+`approved` (boolean).
 
 Task A (Validation) returns `FAILURE` if any of these hold:
 
@@ -151,7 +151,7 @@ sort key `taskId` (string), stream `NEW_AND_OLD_IMAGES`, and
 - META item (`taskId = "META"`): `status`, `input`, `createdAt`,
   `completedAt`, `gsi1pk = "WORKFLOW"`, `gsi1sk = createdAt`.
 - Task items: `label`, `status`, `dependencies` (task ID list), `startedAt`,
-  `finishedAt`, `result` (map), `reason`.
+  optional `workerClaimedAt`, `finishedAt`, `result` (map), `reason`.
 - GSI1 (`gsi1pk`, `gsi1sk`) is sparse (META items only) and serves
   `GET /workflows` newest-first. Do not use `Scan`.
 - Create the META item and five task items in one `TransactWriteItems`.
@@ -168,7 +168,11 @@ sort key `taskId` (string), stream `NEW_AND_OLD_IMAGES`, and
    provides idempotency so stream redelivery and parallel branch completions
    cannot dispatch C more than once.
 4. The Worker invokes a task Lambda synchronously, then writes its terminal
-   status conditioned on the task being `RUNNING`.
+   status conditioned on the task being `RUNNING`. It first claims execution
+   with `workerClaimedAt` so duplicate asynchronous deliveries do not run the
+   task twice. A direct re-drive releases claims older than two minutes before
+   redispatching; this exceeds the Worker timeout and permits recovery after a
+   Worker crash.
 5. Filter irrelevant stream events and configure `retryAttempts` and
    `bisectBatchOnError`.
 6. Lambda timeouts must exceed the maximum task sleep (10 seconds) with margin.
@@ -195,8 +199,10 @@ sort key `taskId` (string), stream `NEW_AND_OLD_IMAGES`, and
   a container image built from its `Dockerfile`.
 - Each task Lambda logs its task name exactly once on start (`Lambda A`,
   `Lambda B1`, etc.) and returns
-  `{ taskId, outcome, startedAt, finishedAt, durationMs, message, findings? }`.
-- Sleep duration is random 1-10 seconds and configurable so tests can run fast.
+  `{ taskId, outcome, startedAt, finishedAt, durationMs, message, findings?, checksum? }`.
+- B2's successful result includes a checksum.
+- Each task randomly sleeps for 1-10 seconds by default. `TASK_SLEEP_SECONDS`
+  can override the delay (including `0` for tests).
 - Keep functions small and straightforward. Put pure orchestration decision
   logic in a separate module so it can be tested without AWS.
 - Tag all taggable resources `project=release-orchestrator`.
@@ -246,6 +252,25 @@ Stretch goals, only after the core works:
   during development and describe what it contributed. Do not invent a prompt
   retrospectively.
 
+## Implemented project decisions
+
+- Dashboard updates use polling; real-time delivery is left as a stretch goal
+  because the demo workflows complete quickly.
+- The REST API is unauthenticated and is for sandbox demonstration only.
+- API Gateway access logging uses an account-and-region-level CloudWatch role.
+  The role is retained because the API Gateway account setting can outlive the
+  stack.
+- Lambda and API access logs are retained with 30-day event retention.
+- The disposable dashboard bucket intentionally does not use CDK
+  `autoDeleteObjects`, which would add a custom-resource Lambda. Empty the
+  bucket manually before destroying the stacks because CloudFormation can
+  delete only empty S3 buckets.
+- The current workflow can be re-driven by directly invoking the Orchestrator
+  with `{ "workflowId": "<id>" }`. The stream mapping retries a failed batch
+  three times and bisects failing batches; there is no failure destination or
+  CloudWatch alarm. Production use should add alerting and managed
+  failure/replay handling.
+
 ## Clean deployment and teardown
 
 - Document required tools and versions, AWS account/region configuration,
@@ -261,12 +286,14 @@ Stretch goals, only after the core works:
 - Document teardown steps and known blockers. Empty S3 buckets before destroy
   when needed, then use the documented `npx cdk destroy --all` command; never
   configure automatic data deletion solely to make teardown easier unless that
-  data loss is explicitly intended.
+  data loss is explicitly intended. The MonitoringStack dashboard bucket is
+  disposable, but is manually emptied before destroy to avoid the extra Lambda
+  introduced by `autoDeleteObjects`.
 
 Out of scope: real build, artifact, or scanning logic; multi-account deployment;
 and API authentication unless time allows. If API authentication is absent,
 document it as a known limitation in the README.
 
-Do not add services such as Step Functions or SQS without asking. Step Functions
-is a production alternative to discuss in the README, not an assumed addition
-to this take-home design.
+Do not add services such as Step Functions or SQS without agreement. Step
+Functions is a production alternative, not an assumed addition to this
+take-home design.

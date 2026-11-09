@@ -5,6 +5,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
+    "test:python": "python -m unittest discover -s test -p \"test_*.py\"",
+    "invoke:all": "tsx scripts/invoke-all.ts",
     "cdk": "cdk"
   },
   "devDependencies": {
@@ -12,13 +14,16 @@
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30",
     "@types/node": "^24.10.1",
-    "jest": "^30",
     "aws-cdk": "2.1148.0",
+    "jest": "^30.5.2",
     "tsx": "^4.23.0",
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.275.0",
+    "@aws-sdk/client-dynamodb": "^3.1164.0",
+    "@aws-sdk/client-lambda": "^3.1164.0",
+    "@aws-sdk/lib-dynamodb": "^3.1164.0",
+    "aws-cdk-lib": "^2.239.0",
     "constructs": "^10.5.0"
   },
   "allowScripts": {

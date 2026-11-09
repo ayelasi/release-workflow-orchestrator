@@ -1,3 +1,4 @@
+// Configures Jest to run the project's TypeScript test suites.
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/test'],

@@ -1,0 +1,102 @@
+<!-- Defines the accessible page structure for the workflow dashboard. -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Release Workflow Orchestrator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Release operations</p>
+        <h1>Workflow orchestrator</h1>
+      </div>
+      <span class="header-mark" aria-hidden="true">RWO</span>
+    </header>
+
+    <main>
+      <section class="panel start-panel" aria-labelledby="start-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">New execution</p>
+            <h2 id="start-heading">Start a release workflow</h2>
+          </div>
+        </div>
+        <form id="workflow-form">
+          <label>
+            Version
+            <select name="version" required>
+              <option value="latest">Latest</option>
+              <option value="beta">Beta</option>
+            </select>
+          </label>
+          <label>
+            Environment
+            <select name="environment" required>
+              <option value="SIT">SIT</option>
+              <option value="PROD">Production</option>
+            </select>
+          </label>
+          <label class="approval-field">
+            <input name="approved" type="checkbox">
+            Release is approved
+          </label>
+          <button class="primary-button" type="submit">Start workflow</button>
+        </form>
+        <p id="form-message" class="message" role="status" aria-live="polite"></p>
+      </section>
+
+      <div class="workspace">
+        <section class="panel workflow-panel" aria-labelledby="workflows-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Recent activity</p>
+              <h2 id="workflows-heading">Workflows</h2>
+            </div>
+            <button id="refresh-button" class="quiet-button" type="button">Refresh</button>
+          </div>
+          <p id="list-message" class="message" role="status" aria-live="polite"></p>
+          <ul id="workflow-list" class="workflow-list"></ul>
+          <button id="load-more-button" class="quiet-button load-more" type="button" hidden>
+            Load more
+          </button>
+        </section>
+
+        <section id="detail-panel" class="panel detail-panel" aria-labelledby="detail-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Execution details</p>
+              <h2 id="detail-heading">Select a workflow</h2>
+            </div>
+            <span id="workflow-status" class="status-badge" hidden></span>
+          </div>
+          <p id="detail-message" class="message" role="status" aria-live="polite">
+            Start a workflow or select one from the recent activity list.
+          </p>
+          <div id="workflow-progress" class="progress-wrap" hidden>
+            <div class="progress-label">
+              <span id="progress-text"></span>
+              <span id="progress-count"></span>
+            </div>
+            <progress id="progress-bar" max="5" value="0" aria-label="Workflow task progress"></progress>
+          </div>
+          <div id="workflow-summary" class="workflow-summary" hidden></div>
+          <div id="dag-container" class="dag-container" hidden>
+            <h3>Task dependency graph</h3>
+            <div class="dag-scroll">
+              <svg id="workflow-dag" viewBox="0 0 700 390" role="img" aria-label="Workflow task dependency graph"></svg>
+            </div>
+          </div>
+          <div id="task-details" class="task-details"></div>
+        </section>
+      </div>
+    </main>
+    <footer>
+      <p>Demo workflow · release inputs are validated by task A</p>
+    </footer>
+  </body>
+</html>
