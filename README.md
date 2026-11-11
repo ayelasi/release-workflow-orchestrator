@@ -4,7 +4,8 @@ A take-home AWS CDK application that runs a release workflow as a task DAG.
 The three stacks and five multi-runtime task Lambdas have been deployed and
 the success, warning, and failure scenarios have been exercised in a sandbox.
 See [docs/workflow-design.md](docs/workflow-design.md) for workflow rules and
-implementation decisions.
+implementation decisions. The design-only Phase 2 alternative using Step
+Functions is described in [docs/AlternativeSolution.md](docs/AlternativeSolution.md).
 
 ## Architecture
 
@@ -45,15 +46,15 @@ npm run invoke:all -- --stack-name PayloadStack --profile sandbox --region us-ea
 Confirm the AWS identity and bootstrap the target account/region if needed:
 
 ```text
-aws sts get-caller-identity --profile sandbox
-npx cdk bootstrap aws://<account-id>/us-east-1 --profile sandbox
+aws sts get-caller-identity
+npx cdk bootstrap aws://<account-id>/us-east-1
 ```
 
 Review the synthesized changes before deploying:
 
 ```text
-npx cdk diff PayloadStack OrchestrationStack MonitoringStack --profile sandbox
-npx cdk deploy --all --profile sandbox
+npx cdk diff PayloadStack OrchestrationStack MonitoringStack
+npx cdk deploy --all
 ```
 
 In the CloudFormation outputs, use `DashboardUrl` for the UI and
@@ -65,8 +66,8 @@ In the CloudFormation outputs, use `DashboardUrl` for the UI and
 Before destroying the stacks, manually empty the dashboard S3 bucket:
 
 ```text
-aws s3 rm s3://<dashboard-bucket-name> --recursive --profile sandbox
-npx cdk destroy --all --profile sandbox
+aws s3 rm s3://<dashboard-bucket-name> --recursive
+npx cdk destroy --all
 ```
 
 The bucket intentionally does not enable CDK's `autoDeleteObjects` option, to
@@ -75,3 +76,14 @@ delete only empty S3 buckets.
 
 The API has no authentication and is intended only for this demo. The
 dashboard uses polling rather than real-time updates.
+
+## AI-assisted development
+
+AI assistance was guided by this repository's `AGENTS.md`, which was modified
+specifically for this project, and by `docs/workflow-design.md`, which describes
+the scope, requirements, and architecture. These files gave the coding
+assistant context to support implementation and review. Following the
+infrastructure review, the AWS Well-Architected Review skill was invoked to
+assess the synthesized architecture and IAM policies. AI assistance also
+helped explain and document the design; implementation and validation results
+are reflected in this repository.

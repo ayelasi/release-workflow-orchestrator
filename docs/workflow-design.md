@@ -207,52 +207,7 @@ sort key `taskId` (string), stream `NEW_AND_OLD_IMAGES`, and
   logic in a separate module so it can be tested without AWS.
 - Tag all taggable resources `project=release-orchestrator`.
 
-## Validation and scope
-
-Run the smallest relevant checks and then project checks as appropriate:
-
-```text
-npm ci
-npm run build
-npm test
-npx cdk synth
-npx cdk diff
-```
-
-`cdk synth` must succeed. Docker must be running if a B3 container asset is
-present. Run `cdk-nag` through Aspects if configured; justify any suppressions.
-`cdk diff` can require AWS credentials and compares with deployed resources.
-Never report a check as passing unless it was run.
-
-Ask before running `cdk deploy`, `cdk destroy`, or any other command that
-changes AWS resources; use a sandbox account/profile only.
-
-## Delivery priorities and stretch goals
-
-The 8-hour limit makes prioritization important. Complete the core phases
-end-to-end before attempting stretch goals:
-
-1. Implement and test all five multi-runtime task Lambdas, including the B3
-   container runtime.
-2. Implement and test DynamoDB-backed orchestration, including parallel B1/B2/B3
-   execution, conditional state transitions, and Worker-mediated task execution.
-3. Implement all three API routes and the dashboard interactions and DAG view.
-4. Provide a README with prerequisites, dependency installation, synthesis,
-   deployment, dashboard/API access, and cleanup instructions. Include basic,
-   useful code comments where they clarify non-obvious behavior or decisions.
-
-Stretch goals, only after the core works:
-
-- Add a script that invokes each task Lambda directly for testing.
-- Document and explain an alternative orchestration pattern without the Worker
-  Lambda, including what changes in the Orchestrator's responsibilities and
-  invocation flow. Implement it only if time allows.
-- Add real-time dashboard updates (for example, WebSockets) only if time allows.
-- If AI tools are used, retain the actual high-value prompt or workflow used
-  during development and describe what it contributed. Do not invent a prompt
-  retrospectively.
-
-## Implemented project decisions
+## Implemented project decisions and scope
 
 - Dashboard updates use polling; real-time delivery is left as a stretch goal
   because the demo workflows complete quickly.
@@ -270,30 +225,8 @@ Stretch goals, only after the core works:
   three times and bisects failing batches; there is no failure destination or
   CloudWatch alarm. Production use should add alerting and managed
   failure/replay handling.
-
-## Clean deployment and teardown
-
-- Document required tools and versions, AWS account/region configuration,
-  permissions, and any required CDK bootstrap step in the README.
-- Synthesize and inspect the templates before deployment. If the target
-  account/region has not been bootstrapped, document and run
-  `npx cdk bootstrap aws://<account>/<region>` with the intended profile.
-- Document the deployment command (for example, `npx cdk deploy --all`), the
-  selected account/profile, and where to find the dashboard URL and API URL
-  stack outputs. Docker must be available when CDK builds the B3 image asset.
-- Deploy only to an authorized sandbox account/profile. Ask the user before
-  running any command that changes AWS resources.
-- Document teardown steps and known blockers. Empty S3 buckets before destroy
-  when needed, then use the documented `npx cdk destroy --all` command; never
-  configure automatic data deletion solely to make teardown easier unless that
-  data loss is explicitly intended. The MonitoringStack dashboard bucket is
-  disposable, but is manually emptied before destroy to avoid the extra Lambda
-  introduced by `autoDeleteObjects`.
-
-Out of scope: real build, artifact, or scanning logic; multi-account deployment;
-and API authentication unless time allows. If API authentication is absent,
-document it as a known limitation in the README.
-
-Do not add services such as Step Functions or SQS without agreement. Step
-Functions is a production alternative, not an assumed addition to this
-take-home design.
+- Real build, artifact, and scanning integrations, multi-account deployment,
+  and API authentication are outside this demo's scope.
+- The Phase 2 alternative architecture using Step Functions is documented in
+  [AlternativeSolution.md](../AlternativeSolution.md); it is a design only and
+  is not part of the deployed implementation.
